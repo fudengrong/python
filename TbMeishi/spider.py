@@ -1,7 +1,7 @@
 # _*_ conding:utf-8 _*_
 '''
-程序目的：跟随教程实战爬去淘宝美食数据 保存到mongodb上
-所需架包：selenium，pyquery，chromedriver
+程序目的：实战爬去淘宝美食数据 保存到mongodb上
+所需架包：selenium，pyquery，chromedriver,phantomjs,pymongo
 实现逻辑：
 1、selenium利用浏览器驱动程序进行搜索
 2、分析页码并翻页，
@@ -19,9 +19,13 @@ import re
 from pyquery import PyQuery as pq
 import pymongo
 
-
+#通过phantomjs 控制加载图片和缓存,由于淘宝登录需要手机验证才能进行收索，所有隐藏chrome浏览器未实现
+SERVICE_ARGS = ['--load-images=false','--disk-cache=true']
+#browser = webdriver.PhantomJS(service_args=SERVICE_ARGS)
 browser = webdriver.Chrome()
 wait = WebDriverWait(browser,10)
+browser.set_window_size(1400,900)
+
 
 #MONGODB基础信息
 MONMGO_URL = '127.0.0.1'
@@ -56,7 +60,7 @@ def search():
         return search()
 #定义页码方法
 def next_page(page_number):
-    print('正在翻页')
+    print('当前翻页',page_number)
     try:
         input = wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "#mainsrp-pager > div > div > div > div.form > input"))
@@ -102,10 +106,15 @@ def save_to_mongodb(result):
         print('保存MONGODB失败',result)
 
 def main():
-    total = search()
-    total = int(re.compile('(\d+)').search(total).group(1))
-    for i in range(2,total+1):
-         next_page(i)
+    try:
+        total = search()
+        total = int(re.compile('(\d+)').search(total).group(1))
+        for i in range(2, total + 1):
+            next_page(i)
+    finally:
+        browser.close()
+
+
 
 if __name__=='__main__':
     main()
